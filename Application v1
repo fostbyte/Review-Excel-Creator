@@ -1,0 +1,396 @@
+import tkinter as tk
+from tkinter import ttk
+from functools import partial
+import xlsxwriter
+import string
+import datetime
+
+cell_dict = {}
+Carriers = ['Sprint', 'Verizon', 'AT&T', 'US Cellular', 'T-Mobile']
+Response_choices = ['Good', 'Adequate', 'Bad']
+project_name = ' '
+date = ' '
+good_quality = ['Select', 'Good', 'Excellent']
+meh_quality = ['Select', 'OKay', 'meh']
+bad_quality = ['Select', 'Bad', 'Awfu']
+
+
+class MainApp(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+        tk.Tk.wm_title(self, "Mock up v4")
+        Labels.__init__(self, self)
+        EntryFields.__init__(self, self)
+        Buttons.__init__(self, self)
+        Responses.__init__(self, self)
+
+class Responses():
+    chk_state = []
+
+    def __init__(self, masters, *args, **kwargs):
+        self.frame = tk.Frame(masters)
+        self.frame
+
+    def checkers(self):
+        """Place Good, Adeqaute, Bad buttons next to carrier service in popup"""
+        new = []
+        for i in range(len(Buttons.chk_state)):
+            new.append(Buttons.chk_state[i].get())
+
+        for i in range(len(new)):
+            print('new[i] = {} and len = {}'.format(new[i], len(new)))
+            if new[i] == 1:
+                b1 = ttk.Button(Buttons.popup, text=Response_choices[0], command=partial(
+                    Responses.Popout2, self, Response_choices[0]))
+                b2 = ttk.Button(Buttons.popup, text=Response_choices[1], command=partial(
+                    Responses.Popout2, self, Response_choices[1]))
+                b3 = ttk.Button(Buttons.popup, text=Response_choices[2], command=partial(
+                    Responses.Popout2, self, Response_choices[2]))
+                b1.grid(column=2, row=i, padx=2, pady=5)
+                b2.grid(column=3, row=i, padx=2, pady=5)
+                b3.grid(column=4, row=i, padx=2, pady=5)
+
+            elif (new[i] == 0):
+                print('delete')
+                b1 = ttk.Button(Buttons.popup, text=Response_choices[0], command=partial(
+                    Responses.Popout2, self, Response_choices[0]))
+                b2 = ttk.Button(Buttons.popup, text=Response_choices[1], command=partial(
+                    Responses.Popout2, self, Response_choices[1]))
+                b3 = ttk.Button(Buttons.popup, text=Response_choices[2], command=partial(
+                    Responses.Popout2, self, Response_choices[2]))
+                b1.grid(column=2, row=i, padx=2, pady=5)
+                b2.grid(column=3, row=i, padx=2, pady=5)
+                b3.grid(column=4, row=i, padx=2, pady=5)
+                b1.grid_forget()
+                b2.grid_forget()
+                b3.grid_forget()
+            else:
+                print('broken')
+
+    def Popout2(self, call, *args):
+        Responses.chk_state = []
+        popup2 = tk.Toplevel()
+        popup2.wm_title('working')
+
+        
+        if call == 'Adequate':
+            Responses.Response_checks = ['{} Select'.format(
+                Buttons.temp), '{} OKay'.format(Buttons.temp), '{} meh'.format(Buttons.temp)]
+        elif call == 'Bad':
+            Responses.Response_checks = ['{} Select'.format(Buttons.temp), '{} Bad'.format(
+                Buttons.temp), '{} Awfu'.format(Buttons.temp)]
+        elif call == 'Good':
+            Responses.Response_checks = ['{} Select'.format(Buttons.temp), '{} Good'.format(
+                Buttons.temp), '{} Excellent'.format(Buttons.temp)]
+        else:
+            call = ['fail']
+
+        for i in range(len(Responses.Response_checks)):
+            Responses.chk_state.append(tk.IntVar())
+            
+            c = ttk.Checkbutton(
+                popup2, text=Responses.Response_checks[i], variable=Responses.chk_state[i])
+            c.grid(column=0, row=i+3, sticky='w')
+
+        b = ttk.Button(popup2, text='Okay', command=lambda: Buttons.CellSelect2(
+            popup2, Responses.Response_checks, Responses.chk_state) and popup2.destroy)
+        b.grid(column=1, row=(len(Responses.Response_checks)+1), sticky='w')
+
+
+class Labels():
+    def __init__(self, masters, *args, **kwargs):
+        self.frame = tk.Frame(masters)
+        self.frame
+        tk.Label(masters, text='Project Name').grid(
+            column=0, row=0, padx=5, pady=5)
+        tk.Label(masters, text='Number of Floors').grid(
+            column=0, row=1, padx=5, pady=5)
+        tk.Label(masters, text='Number of Basement Floors').grid(
+            column=0, row=2, padx=5, pady=5)
+
+
+class EntryFields():
+    e1 = ''
+    e2 = 0
+
+    def __init__(self, masters, *args, **kwargs):
+        self.frame = tk.Frame(masters)
+        self.frame
+        EntryFields.e1 = tk.Entry()
+        EntryFields.e1.grid(column=1, row=0, padx=5, pady=5)
+        EntryFields.e2 = tk.Entry()
+        EntryFields.e2.grid(column=1, row=1, padx=5, pady=5)
+        EntryFields.e3 = tk.Entry()
+        EntryFields.e3.grid(column=1, row=2, padx=5, pady=5)
+
+
+class Buttons():
+    call = ''
+    cell_dict = {}
+    choice_dict = {}
+    service_choices = []
+    quality_choices = []
+    chks = []
+    chk_state = []
+    old = []
+    temp = ''
+    choice_count = 0
+    popup = tk.Toplevel
+
+    def __init__(self, masters, *args, **kwargs):
+        self.frame = tk.Frame(masters)
+        self.frame
+        Carriers.sort()
+
+        # Carrier buttons
+        for i in range(len(Carriers)):
+            b1 = ttk.Button(self, text=Carriers[i], command=partial(
+                Buttons.Popout, self, Carriers[i]))
+            b1.grid(column=0, row=i+4, padx=5, pady=5)
+            Buttons.chks.append(tk.IntVar())
+            # Buttons.chks[i].set(False)
+            
+
+           
+
+        # Gathers data from
+        b2 = ttk.Button(self, text='Submit', command=lambda: Buttons.Entryblocks(
+            self, EntryFields.e1, EntryFields.e2, EntryFields.e3))
+        b2.grid(column=0, row=(3), padx=5, pady=5, sticky='w')
+
+        b3 = ttk.Button(self, text='Exit/Print', command=lambda: self.quit())
+        b3.grid(column=0, row=(len(Carriers)+5), padx=5, pady=5, sticky='w')
+
+        
+    
+    def _quit():
+        
+        MainApp.self.quit()
+
+    def Popout(self, call, *args):
+        Buttons.popup = tk.Toplevel()
+        Buttons.popup.wm_title('Service Selection')
+        Buttons.temp = call
+        if call == 'AT&T':
+            call = ['AT&T 850 UMTS', 'AT&T 1900 UMTS', 'AT&T 700 LTE',
+                    'AT&T 850 LTE', 'AT&T 1900 LTE', 'AT&T 2100 LTE', 'AT&T 2300 LTE']
+        elif call == 'Sprint':
+            call = ['Sprint 1900 EVDO', 'Sprint 800 CDMA', 'Sprint 1900 CDMA', 'Sprint 700 LTE',
+                    'Sprint 800 LTE', 'Sprint 1900 LTE', 'Sprint 2500 LTE']
+        elif call == 'T-Mobile':
+            call = ['T-Mobile 850 UMTS', 'T-Mobile 1900 UMTS', 'T-Mobile 700 LTE',
+                    'T-Mobile 850 LTE', 'T-Mobile 1900 LTE', 'T-Mobile 2100 LTE', 'T-Mobile 2300 LTE']
+        elif call == 'US Cellular':
+            call = ['US Cellular 1900 UMTS', 'US Cellular 2100 UMTS',
+                    'US Cellular 700 LTE', 'US Cellular 1900 LTE', 'US Cellular 2100 LTE']
+        elif call == 'Verizon':
+            call = ['850 EVDO', 'Verizon 850 CDMA', 'Verizon 1900 CDMA',
+                    'Verizon 700 LTE', 'Verizon 850 LTE', 'Verizon 1900 LTE', 'Verizon 2100 LTE']
+        else:
+            call = ['fail']
+
+        for i in range(len(call)):
+            Buttons.chk_state.append(tk.IntVar())
+            Buttons.chk_state[i].set(0)
+            c = ttk.Checkbutton(
+                Buttons.popup, text=call[i], variable=Buttons.chk_state[i])
+            c.grid(column=0, row=i, sticky='w')
+            
+
+        b = ttk.Button(Buttons.popup, text='Okay', command=lambda: Buttons.CellSelect(
+            Buttons.popup, call, Buttons.chk_state) and Buttons.popup.destroy())
+        b.grid(column=0, row=(len(call)+2), sticky='w')
+
+        
+    def CellSelect(self, call, chk_state):
+        new = []
+
+        for i in range(len(Buttons.chk_state)):
+            new.append(Buttons.chk_state[i].get())
+
+        Buttons.cell_dict = dict(zip(call, new))
+        Buttons.service_choices.append(Buttons.cell_dict)
+        
+            def CellSelect2(self, call, chk_state):
+        new = []
+
+        for i in range(len(Responses.chk_state)):
+            if Responses.chk_state[i].get() == 1:
+                new.append(Responses.chk_state[i].get())
+
+        Buttons.choice_dict = dict(zip(call, new))
+        if (Buttons.old != Buttons.choice_dict):
+            Buttons.quality_choices.append(Buttons.choice_dict)
+            Buttons.choice_count +=1
+            
+
+        Buttons.old = Buttons.choice_dict
+        
+        def Entryblocks(self, field1, field2, field3):
+        Buttons.project_name = field1.get()
+        Buttons.floors = field2.get()
+        Buttons.basement_floors = field3.get()
+
+       
+class Excel():
+    def __init__(self, *args, **kwargs):
+        wall_fill = '#A0A0A0'
+        green_fill = '#00B200'
+        red_fill = '#FF3232'
+        yellow_fill = '#FFA500'
+
+        mdict = Buttons.service_choices
+
+        floors = []
+        for i in range(int(Buttons.basement_floors), 0, -1):
+            floors.append('Basement Floor {}'.format(i))
+        
+        for i in range(int(Buttons.floors)):
+            floors.append('Floor {}'.format(i+1))
+
+        floor_num = len(floors)+5
+        new_dict = {}
+        for dict_num in mdict:
+            temp_dict = dict_num
+            for item, key in temp_dict.items():
+                if key != 0:
+                    new_dict[item] = key
+
+        num_of_services = 2
+        for item, k in (new_dict.items()):
+            if k != 0:
+                num_of_services += 1
+
+        notes = 'Notes:'
+        alphabet = dict(zip(range(0, 26), string.ascii_uppercase))
+
+        walls = num_of_services-1
+        
+        project = Buttons.project_name
+        data_temp = datetime.datetime.now()
+        date_today = data_temp.strftime('%B %d, %Y')
+        finalwidth = len(project) + 15
+        if (len(date_today) > finalwidth):
+            finalwidth = len(date_today) + 10
+
+      
+        workbook = xlsxwriter.Workbook(
+            '{} Review {} .xlsx'.format(project, date_today))
+
+        worksheet = workbook.add_worksheet()
+
+        """"Formats"""
+        background_top_format = workbook.add_format({'bg_color': wall_fill, 'top': 1})
+        background_bottom_format = workbook.add_format(
+            {'bg_color': wall_fill, 'bottom': 1})
+        background_lside_format = workbook.add_format(
+            {'bg_color': wall_fill, 'left': 1})
+        background_rside_format = workbook.add_format(
+            {'bg_color': wall_fill, 'right': 1})
+        background_NW_format = workbook.add_format(
+            {'bg_color': wall_fill, 'top': 1, 'left': 1})
+        background_NE_format = workbook.add_format(
+            {'bg_color': wall_fill, 'top': 1, 'right': 1})
+        background_SE_format = workbook.add_format(
+            {'bg_color': wall_fill, 'bottom': 1, 'right': 1})
+        background_SW_format = workbook.add_format(
+            {'bg_color': wall_fill, 'bottom': 1, 'left': 1})
+        background_fill = workbook.add_format({'bg_color': wall_fill})
+
+
+        service_fill = workbook.add_format(
+            {'bg_color': '#E8E8E8', 'border': 1, 'right': True, 'center_across': True, 'valign': 'middle'})
+
+        project_title = workbook.add_format({'bold': True, 'font_color': 'black', 'font_size': 18,
+                                            'pattern': 1, 'bg_color': '#7f7fff', 'center_across': 1, 'border': 2})
+
+        legend_title = workbook.add_format({'bold': True, 'font_color': 'black', 'font_size': 12,
+                                            'pattern': 1, 'bg_color': '#7f7fff', 'center_across': 1, 'border': 2})
+
+
+        good_format = workbook.add_format(
+            {'bg_color': green_fill, 'border': 1, 'center_across': True, 'valign': 'middle'})
+        okay_format = workbook.add_format(
+            {'bg_color': yellow_fill, 'border': 1, 'center_across': True, 'valign': 'middle'})
+        bad_format = workbook.add_format(
+            {'bg_color': red_fill, 'border': 1, 'center_across': True, 'valign': 'middle'})
+
+
+        """Corners"""
+        worksheet.conditional_format('A1:A1', {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_NW_format})
+        worksheet.conditional_format('A{}:A{}'.format(floor_num+5, floor_num+5), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_SW_format})
+        worksheet.conditional_format('{}1:{}1'.format(alphabet[num_of_services], alphabet[num_of_services], num_of_services), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_NE_format})
+        worksheet.conditional_format('{}{}:{}{}'.format(alphabet[num_of_services], floor_num+5, alphabet[num_of_services], floor_num+5), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_SE_format})
+        
+
+
+        """ Walls"""
+        worksheet.conditional_format('B1:{}1'.format(alphabet[walls], walls), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_top_format})
+        worksheet.conditional_format('{}2:{}{}'.format(alphabet[num_of_services], alphabet[num_of_services], floor_num+5), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_rside_format})
+        worksheet.conditional_format('B{}:{}{}'.format(floor_num, alphabet[walls], floor_num), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_fill})
+        worksheet.conditional_format('A2:A{}'.format(
+                                    floor_num+5), {'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_lside_format})
+        worksheet.conditional_format('C2:{}3'.format(alphabet[walls]), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_fill})
+        worksheet.conditional_format('B{}:{}{}'.format(floor_num+5, alphabet[walls], floor_num+5), {
+                                    'type': 'cell', 'criteria': '<=', 'value': '1', 'format': background_bottom_format})
+
+        """Titles"""
+        worksheet.merge_range('B2:C2', project, project_title)
+        worksheet.merge_range('B3:C3', date_today, project_title)
+        worksheet.write('B4:B4', 'Floor \ Service', service_fill)
+
+        worksheet.merge_range('B{}:{}{}'.format(
+            floor_num+1, alphabet[walls-1], floor_num+4), notes)
+
+        worksheet.write('{}{}:{}{}'.format(
+            alphabet[walls], floor_num+1, alphabet[walls], floor_num+1), 'Legend', legend_title)
+
+        worksheet.write('{}{}:{}{}'.format(
+            alphabet[walls], floor_num+2, alphabet[walls], floor_num+2), 'Good Results', good_format)
+
+        worksheet.write('{}{}:{}{}'.format(
+            alphabet[walls], floor_num+3, alphabet[walls], floor_num+3), 'Okay Results', okay_format)
+
+
+        worksheet.write('{}{}:{}{}'.format(
+            alphabet[walls], floor_num+4, alphabet[walls], floor_num+4), 'Redo Walk', bad_format)
+
+        """Set column width and row height"""
+        worksheet.set_column(1, walls, finalwidth)
+
+
+        """Writing titles"""
+        service_col = 2
+        service_row = 3
+        for item, k in (new_dict.items()):
+            # Services
+            if k != 0:
+                worksheet.write(service_row, service_col, item, service_fill)
+                service_col += 1
+
+
+        floor_col = 1
+        floor_row = 4
+        for f in (floors):
+            # Floor numbers
+            worksheet.write(floor_row, floor_col, f, service_fill)
+            floor_row += 1
+
+        
+        workbook.close()
+
+
+
+app = MainApp()
+app.mainloop()
+# print(int(Buttons.floors)+3)
+Excel()
+print ('project name: {},  dict {}, number of floors {}, number of basement floors {}'.format(Buttons.project_name, Buttons.service_choices, Buttons.floors, Buttons.basement_floors))
